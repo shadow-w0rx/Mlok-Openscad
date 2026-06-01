@@ -46,12 +46,12 @@ Subtractive geometry for M-LOK receiver slots. Use inside a `difference()`.
 
 ```scad
 mlok_female_slots(
-  num_slots          = 1,
-  h                  = 3.810,   // mounting surface thickness
-  flat_w             = 15.240,  // total clearance width
-  flat_ext           = 7.620,   // clearance extension past slot ends
-  add_clearance_flats = false,  // also subtract top/bottom clearance pockets
-  clearance_height   = 5        // depth of clearance pocket extrusion
+  num_slots           = 1,
+  h                   = 3.810,   // mounting surface thickness
+  flat_w              = 15.240,  // total clearance width
+  flat_ext            = 7.620,   // clearance extension past slot ends
+  add_clearance_flats = false,   // also subtract top/bottom clearance pockets
+  clearance_height    = 5        // depth of clearance pocket extrusion
 );
 ```
 
@@ -82,35 +82,79 @@ mlok_flat_panel(
 
 ---
 
+### `mlok_receiver_panel`
+Convenience module: a flat panel with female slots already cut — equivalent to composing `mlok_flat_panel` + `mlok_female_slots` manually, but in one call.
+
+```scad
+mlok_receiver_panel(
+  num_slots           = 1,
+  h                   = 3.810,
+  flat_w              = 15.240,
+  flat_ext            = 7.620,
+  rounding            = 0,
+  add_clearance_flats = false,
+  clearance_height    = 5
+);
+```
+
+**Example:**
+```scad
+include <mlok/mlok.scad>
+
+mlok_receiver_panel(num_slots = 3, h = 3.81, add_clearance_flats = true);
+```
+
+---
+
+### `mlok_slot_filler`
+A friction-fit plug for an unused M-LOK slot. Use the same `slop` value as your receiver panel.
+
+```scad
+mlok_slot_filler(
+  h    = 3.810,   // thickness — match your mounting surface
+  slop = 0.15     // per-side clearance
+);
+```
+
+---
+
 ### `mlok_male_lugs`
 Additive male lug pairs for `num_lugs` individual lug tabs. Intended as a child of a BOSL2 `diff()` body — screw holes are tagged `"screw_hole"` and diffed by the parent.
 
+Male accessories are specified in **individual lug tabs** (not slot positions), because a single lug (half-slot) is a valid mount and odd numbers like 3 are common. 2 lugs = 1 full slot position.
+
 ```scad
 mlok_male_lugs(
-  num_lugs      = 6,    // total individual lug tabs (2 per slot position; odd values trim the last slot)
-  h             = 2.5,    // lug protrusion height
-  slop          = 0.15,   // per-side clearance reduction for print fit
-  screw_d       = 5.2,    // pass-through screw hole diameter
-  parent_height = 8,      // height of parent body (sizes the bore)
-  step_interval = 2       // place a screw hole every N lugs
+  num_lugs              = 6,      // total individual lug tabs (2 per slot position; odd trims last slot)
+  h                     = 2.5,    // lug protrusion height (default: MLOK_LUG_H)
+  slop                  = 0.15,   // per-side clearance reduction for print fit
+  screw_d               = 5.2,    // pass-through screw hole diameter
+  parent_height         = 8,      // height of parent body (sizes the bore)
+  screw_interval        = 2,      // place a screw hole every N lugs
+  screw_interval_offset = 0,      // skip this many lugs before the first screw hole
+  screw_head_d          = 0,      // counterbore diameter (0 = auto: screw_d × 1.8)
+  clear_screw_top       = 0       // extend the screw bore this many mm past the parent body top
 );
 ```
 
 ---
 
 ### `mlok_male_base`
-Composed accessory blank: a body with `mlok_male_lugs` on the bottom and screw bores diffed through. Use this as the starting point for custom M-LOK accessories.
+Composed accessory blank: a body with `mlok_male_lugs` on the bottom and screw bores diffed through. Children are forwarded to the inner cuboid, so you can attach additional geometry via BOSL2 `position()`.
 
 ```scad
 mlok_male_base(
-  num_lugs      = 4,
-  slop          = 0.15,
-  screw_d       = 5.2,
-  step_interval = 2,
-  base_height   = 8,
-  rounding      = 1.5,
-  flat_w        = 15.240,
-  flat_ext      = 7.620
+  num_lugs              = 4,
+  lug_h                 = 2.5,    // lug protrusion height
+  slop                  = 0.15,
+  screw_d               = 5.2,
+  screw_interval        = 2,
+  screw_interval_offset = 0,
+  screw_head_d          = 0,      // counterbore diameter (0 = auto)
+  base_height           = 8,
+  rounding              = 1.5,
+  flat_w                = 15.240,
+  flat_ext              = 7.620
 );
 ```
 
@@ -121,12 +165,27 @@ include <mlok/mlok.scad>
 mlok_male_base(num_lugs = 4, slop = 0.15, screw_d = 5.2);
 ```
 
+**Example — adding geometry on top via children:**
+```scad
+mlok_male_base(num_lugs = 4, screw_d = 5.2) {
+  position(TOP)
+    cyl(h = 20, d = 14, anchor = BOTTOM);
+}
+```
+
 ---
 
-## Helper Function
+## Helper Functions
+
+### `mlok_male_dimensions(num_lugs, flat_w, flat_ext)`
+Returns `[length, width]` of a male accessory body sized to exactly fit `num_lugs` lug tabs. Use this for sizing any male accessory — it accounts for partial slots correctly.
+
+```scad
+dims = mlok_male_dimensions(3);  // exactly 3 lugs, not rounded to 4
+```
 
 ### `mlok_flat_dimensions(num_slots, flat_w, flat_ext)`
-Returns `[length, width]` of the flat panel footprint for a given slot count. Useful when you need to size your own geometry to match the M-LOK footprint.
+Returns `[length, width]` of a female receiver panel for a given slot count.
 
 ```scad
 dims = mlok_flat_dimensions(3);
@@ -154,8 +213,18 @@ include <mlok/mlok.scad>
 handstop(num_lugs = 2, screw_interval = 1);
 ```
 
+### `examples/sling_stud.scad`
+A QD-style sling stud mount built on top of the library. A rectangular M-LOK base with a cylindrical post and lateral sling-attachment bore. Demonstrates `mlok_male_lugs` inside a multi-tag `diff()` with a nested child geometry.
+
+```scad
+include <mlok/mlok.scad>
+
+sling_stud(num_lugs = 2, screw_interval = 1);
+```
+
 ---
 
 ## License
 
 This project is provided as-is for personal and commercial use. M-LOK® is a registered trademark of Magpul Industries Corp. This library is not affiliated with or endorsed by Magpul.
+

@@ -41,9 +41,11 @@ use     <mlok/mlok.scad>   // modules only, no BOSL2 re-export
 
 **Screw holes via BOSL2 tags:** Screw bore geometry in `mlok_male_lugs` is tagged `"screw_hole"` so the parent `diff("screw_hole")` call in `mlok_male_base` diffs them automatically. When building custom accessories with `mlok_male_lugs`, wrap the parent body in `diff("screw_hole")`.
 
-**`mlok_male_lugs` / `mlok_male_base` take `num_lugs`** (individual lug tabs), not slot count. 2 lugs = 1 slot position. Slot positions are computed internally as `ceil(num_lugs / 2)`. Odd `num_lugs` trims the last slot to one lug tab. `mlok_flat_dimensions` still takes slot-position count — always pass `ceil(num_lugs / 2)` to it from custom accessories.
+**`mlok_male_lugs` / `mlok_male_base` take `num_lugs`** (individual lug tabs). Each lug is one independent half-slot male interface. There is no slot concept on the male side — 1 lug is valid, 3 lugs is valid, etc. Positions are computed purely from lug index, `MLOK_PITCH`, and `MLOK_LUG_OFFSET`.
 
-**`mlok_flat_dimensions(num_slot_positions)`** returns `[length, width]` — use this whenever you need to size your own geometry to the M-LOK footprint rather than hardcoding dimensions.
+**`mlok_male_dimensions(num_lugs)`** returns `[length, width]` — use this to size male accessory bodies to exactly fit the lug array. Do NOT use `mlok_flat_dimensions(ceil(num_lugs / 2))` for male body sizing; that rounds up to the next slot boundary and will oversize odd-lug-count accessories.
+
+**`mlok_flat_dimensions(num_slots)`** returns `[length, width]` — use this only for female receiver panels where you are sizing by slot count.
 
 **Spec constants:** All M-LOK spec values live in `constants.scad` as `MLOK_*` globals. Do not hardcode spec dimensions (slot width, pitch, radius, etc.) inline.
 

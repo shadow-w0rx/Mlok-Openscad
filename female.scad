@@ -29,3 +29,36 @@ module mlok_flat_panel(num_slots = 1, h = 3.810, flat_w = 15.240, flat_ext = 7.6
   cuboid([dims.x, dims.y, h], rounding = rounding, edges = "Z")
     children();
 }
+
+// Convenience composed receiver panel: flat panel with female slots already cut.
+// Equivalent to diff(mlok_flat_panel, mlok_female_slots) in one call.
+module mlok_receiver_panel(num_slots = 1, h = 3.810, flat_w = 15.240, flat_ext = 7.620, rounding = 0, add_clearance_flats = false, clearance_height = 5, $fn = 64) {
+  diff("mlok_slots")
+    mlok_flat_panel(num_slots = num_slots, h = h, flat_w = flat_w, flat_ext = flat_ext, rounding = rounding, $fn = $fn) {
+      tag("mlok_slots")
+        mlok_female_slots(
+          num_slots           = num_slots,
+          h                   = h,
+          flat_w              = flat_w,
+          flat_ext            = flat_ext,
+          add_clearance_flats = add_clearance_flats,
+          clearance_height    = clearance_height,
+          $fn                 = $fn
+        );
+    }
+}
+
+// A friction-fit plug for an unused M-LOK slot.
+//   h    — thickness matching the mounting surface
+//   slop — per-side clearance reduction (same value as your female panel)
+module mlok_slot_filler(h = 3.810, slop = 0.15, $fn = 64) {
+  assert(slop >= 0, "mlok_slot_filler: slop must be >= 0");
+  assert(slop < MLOK_SLOT_W / 2, str("mlok_slot_filler: slop must be < ", MLOK_SLOT_W / 2));
+
+  filler_l = MLOK_SLOT_L - (2 * slop);
+  filler_w = MLOK_SLOT_W - (2 * slop);
+  filler_r = max(0.1, MLOK_RADIUS - slop);
+
+  cuboid([filler_l, filler_w, h - slop], rounding = filler_r, edges = "Z");
+}
+

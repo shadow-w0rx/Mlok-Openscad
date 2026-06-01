@@ -5,5 +5,6 @@
 //   use     <mlok/mlok.scad>   — imports modules only
 
 include <BOSL2/std.scad>
+include <constants.scad>
 use <female.scad>
 use <male.scad>
